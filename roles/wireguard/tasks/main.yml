@@ -1,0 +1,72 @@
+- name: Install wireguard
+  ansible.builtin.apt:
+    name:
+      - wireguard
+    state: present
+
+- name: create wg0.conf file
+  ansible.builtin.shell: |
+    tee /etc/wireguard/wg0.conf <<END
+    [Interface]
+    PrivateKey = $(wg genkey)
+    Address = 10.0.0.1/24
+    ListenPort = 51820
+    PostUp = sysctl net.ipv4.ip_forward=1
+    PostUp = iptables -A FORWARD -i {{ network_interface }} -o %i -j ACCEPT
+    PostUp = iptables -A FORWARD -i %i -j ACCEPT
+    PostUp = iptables -t nat -A POSTROUTING -o {{ network_interface }} -j MASQUERADE
+    PostDown = sysctl net.ipv4.ip_forward=0
+    PostDown = iptables -D FORWARD -i {{ network_interface }} -o %i -j ACCEPT
+    PostDown = iptables -D FORWARD -i %i -j ACCEPT
+    PostDown = iptables -t nat -D POSTROUTING -o {{ network_interface }} -j MASQUERADE
+    END
+
+- name: start up WireGuard
+  ansible.builtin.shell:
+    cmd: systemctl start wg-quick@wg0
+
+- name: configure WireGuard to always start up on system boot
+  ansible.builtin.shell: 
+    cmd: systemctl enable wg-quick@wg0
+
+- name: Create directory for clients devices configurations
+  ansible.builtin.shell:
+    cmd: mkdir ~/wg-clients && chmod go= ~/wg-clients
+  ignore_errors: true
+
+- name: create a configuration file for client
+  ansible.builtin.shell: |
+    peers_count="$(sudo grep '\[Peer\]' /etc/wireguard/wg0.conf | wc -l)"
+    tee ~/wg-clients/my-client.conf <<END
+    [Interface]
+    PrivateKey = $(wg genkey)
+    Address = 10.0.0.$(( peers_count + 2 ))/24
+    DNS = 8.8.8.8,8.8.4.4
+    END
+
+- name: Add the PublicKey of the client to the server
+  ansible.builtin.shell: |
+    tee -a /etc/wireguard/wg0.conf <<END
+    [Peer]
+    PublicKey = $(grep PrivateKey ~/wg-clients/my-client.conf | awk '{print $3}' | wg pubkey)
+    AllowedIPs = $(grep Address ~/wg-clients/my-client.conf | awk '{print $3}' | sed 's/\/.*//')/32
+    END
+
+- name: restart WireGuard
+  ansible.builtin.shell: |
+    systemctl stop wg-quick@wg0
+    systemctl start wg-quick@wg0
+
+- name: Add the PublicKey of the server to the client
+  ansible.builtin.shell: |
+    wgservip="$(ip -4 -br address show dev {{ network_interface }})" &&
+    tee -a ~/wg-clients/my-client.conf <<END
+
+    [Peer]
+    PublicKey = $(sudo grep PrivateKey /etc/wireguard/wg0.conf | awk '{print $3}' | wg pubkey)
+    Endpoint = $(ip -4 -br address show dev {{ network_interface }} | awk '{print $3}' | sed 's/\/.*//'):51820
+    AllowedIPs = 0.0.0.0/0
+    PersistentKeepalive = 25
+    END
+
+

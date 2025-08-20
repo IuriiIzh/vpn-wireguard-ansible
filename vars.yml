@@ -1,0 +1,2 @@
+#the name of the network interface connected to the internet.
+network_interface: ens18

@@ -1,0 +1,12 @@
+- name: Read service variables from vars.yml 
+  hosts: "*, localhost"
+  tasks:
+    - name: Include vars vars.yaml
+      ansible.builtin.include_vars:
+        file: vars.yml
+
+- name: Start VPN configuration
+  hosts: servers
+  become: yes
+  roles:
+    - wireguard
