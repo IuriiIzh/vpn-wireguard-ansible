@@ -9,7 +9,7 @@
     tee /etc/wireguard/wg0.conf <<END
     [Interface]
     PrivateKey = $(wg genkey)
-    Address = 10.0.0.1/24
+    Address = 10.0.0.1/24, 2001:db8::cafe:1
     ListenPort = 51820
     PostUp = sysctl net.ipv4.ip_forward=1
     PostUp = sysctl net.ipv6.conf.all.forwarding=1
@@ -41,8 +41,8 @@
     tee ~/wg-clients/my-client.conf <<END
     [Interface]
     PrivateKey = $(wg genkey)
-    Address = 10.0.0.$(( peers_count + 2 ))/24
-    DNS = 8.8.8.8,8.8.4.4
+    Address = 10.0.0.$(( peers_count + 2 ))/24, 2001:db8::cafe:$(( peers_count + 2 ))
+    DNS = 8.8.8.8,8.8.4.4, 2001:4860:4860::8888
     END
 
 - name: Add the PublicKey of the client to the server
