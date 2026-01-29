@@ -32,7 +32,7 @@
 
 - name: Create directory for clients devices configurations
   ansible.builtin.shell:
-    cmd: mkdir ~/wg-clients && chmod go= ~/wg-clients
+    cmd: mkdir -p ~/wg-clients && chmod go= ~/wg-clients
   ignore_errors: true
 
 - name: create a configuration file for client
