@@ -12,6 +12,7 @@
     Address = 10.0.0.1/24
     ListenPort = 51820
     PostUp = sysctl net.ipv4.ip_forward=1
+    PostUp = sysctl net.ipv6.conf.all.forwarding=1
     PostUp = iptables -A FORWARD -i {{ network_interface }} -o %i -j ACCEPT
     PostUp = iptables -A FORWARD -i %i -j ACCEPT
     PostUp = iptables -t nat -A POSTROUTING -o {{ network_interface }} -j MASQUERADE
