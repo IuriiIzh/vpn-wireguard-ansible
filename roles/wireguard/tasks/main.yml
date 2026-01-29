@@ -50,7 +50,7 @@
     tee -a /etc/wireguard/wg0.conf <<END
     [Peer]
     PublicKey = $(grep PrivateKey ~/wg-clients/my-client.conf | awk '{print $3}' | wg pubkey)
-    AllowedIPs = $(grep Address ~/wg-clients/my-client.conf | awk '{print $3}' | sed 's/\/.*//')/32
+    AllowedIPs = $(grep Address ~/wg-clients/my-client.conf | awk '{print $3}' | sed 's/\/.*//')/32, $(grep Address ~/wg-clients/my-client.conf | awk '{print $4}')
     END
 
 - name: restart WireGuard
